@@ -1,0 +1,154 @@
+name: Channel Factory
+
+on:
+  schedule:
+    - cron: "0 5 * * *"        # 05:00 UTC every day -> 1 long video + Shorts
+    - cron: "30 */8 * * *"     # every 8 hours -> channel manager (comments, titles, report)
+  workflow_dispatch:           # manual run button
+    inputs:
+      task:
+        description: "produce = long + shorts | long | shorts | manage | optimize"
+        type: choice
+        default: produce
+        options: [produce, long, shorts, manage, optimize]
+      mode:
+        description: "dry = test without upload | private = test upload | publish = real (scheduled) | now = public immediately"
+        type: choice
+        default: dry
+        options: [dry, private, publish, now]
+      shorts:
+        description: "How many Shorts"
+        default: "3"
+      long_minutes:
+        description: "Length of the long video in minutes"
+        default: "13"
+
+permissions:
+  contents: write
+
+jobs:
+  produce:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '0 5 * * *') ||
+      (github.event_name == 'workflow_dispatch' && contains('produce long shorts', github.event.inputs.task))
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    concurrency:
+      group: factory-produce
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg + fonts
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Make and upload videos
+        env:
+          # ---- AI writers (the more you add, the fewer errors; all are free) ----
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          # ---- footage ----
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          # ---- YouTube ----
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TASK: ${{ github.event.inputs.task || 'produce' }}
+          MODE: ${{ github.event.inputs.mode || 'publish' }}
+          SHORTS_PER_DAY: ${{ github.event.inputs.shorts || '3' }}
+          LONG_MINUTES: ${{ github.event.inputs.long_minutes || '13' }}
+          # ---- change these to customise the channel ----
+          NICHE: "mind-blowing facts about space, the ocean, animals and nature"
+          VIDEO_LANG: "en"                      # en or ar
+          PUBLISH_HOURS_UTC: "9,12,15,18,21"    # Shorts (the bot learns the best hours by itself)
+          LONG_PUBLISH_HOURS_UTC: "15,17,13"    # long video
+          DISCLOSE_AI: "1"                      # 1 = tick "altered or synthetic content" = Yes
+          AI_IMAGES: "1"
+        run: python main.py
+
+      - name: Save history (keeps the repo active + avoids repeats)
+        if: always()
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add history.json 2>/dev/null || true
+          git add state.json 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "update history" && git pull --rebase --autostash && git push)
+
+      - name: Keep the videos and thumbnails for 2 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: videos
+          path: |
+            out/*.mp4
+            out/*.jpg
+          retention-days: 2
+          if-no-files-found: ignore
+
+  manage:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '30 */8 * * *') ||
+      (github.event_name == 'workflow_dispatch' && contains('manage optimize', github.event.inputs.task))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: factory-manage
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Channel manager
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TASK: ${{ github.event.inputs.task || 'manage' }}
+          MODE: publish
+          NICHE: "mind-blowing facts about space, the ocean, animals and nature"
+          VIDEO_LANG: "en"
+          MAX_REPLIES: "8"
+          AI_IMAGES: "1"
+        run: python main.py
+
+      - name: Save history
+        if: always()
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add history.json 2>/dev/null || true
+          git add state.json 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "manager update" && git pull --rebase --autostash && git push)
