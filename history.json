@@ -84,7 +84,8 @@
   "thumb_prompt": "Epic scale cross-section render of a dark ocean trench where glowing electric turquoise surface currents plunge into a pitch-black abyssal vortex, high contrast lighting, hyper-detailed fluid physics, empty dramatic dark space on the left side, cinematic color grading, no faces, no text",
   "thumb_text": "THE WATER IS STALLING",
   "first_comment": "Which of these 6 ocean mechanics shocked you the most—the infrared skin layer or the deep polar salt pump?",
-  "seconds": 591
+  "seconds": 591,
+  "comment_posted": true
  },
  {
   "date": "2026-11-12",
@@ -142,7 +143,8 @@
   "thumb_prompt": "Epic wave crashing on shore with vibrant blue water and empty space on the left",
   "thumb_text": "OCEAN CODE",
   "first_comment": "What's the most significant way you think ocean currents impact your daily life?",
-  "seconds": 549
+  "seconds": 549,
+  "comment_posted": true
  },
  {
   "date": "2026-11-12",
