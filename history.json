@@ -796,5 +796,70 @@
    "pixabay:71567"
   ],
   "publish_at": "2026-11-17T14:42:02Z"
+ },
+ {
+  "date": "2026-11-18",
+  "kind": "short",
+  "topic": "Space Debris",
+  "title": "Debris Gone",
+  "video_id": "Ti_aCRMalaY",
+  "clips": [
+   "pixabay:19798",
+   "pixabay:142363",
+   "pixabay:228",
+   "pixabay:41878",
+   "pixabay:8",
+   "pixabay:1110",
+   "pixabay:84804"
+  ],
+  "publish_at": "2026-11-18T14:05:06Z"
+ },
+ {
+  "date": "2026-11-18",
+  "kind": "short",
+  "topic": "Glowworm Caves",
+  "title": "Glowworms: Tiny Giants",
+  "video_id": "_sMVFvMJBBg",
+  "clips": [
+   "pixabay:22908",
+   "pixabay:189018",
+   "pixabay:128271",
+   "pixabay:236016",
+   "pixabay:164360",
+   "pixabay:137574"
+  ],
+  "publish_at": "2026-11-18T14:17:06Z"
+ },
+ {
+  "date": "2026-11-18",
+  "kind": "short",
+  "topic": "The Great Attractor",
+  "title": "Cosmic Pull",
+  "video_id": "Q9ebjfUs30o",
+  "clips": [
+   "pixabay:315602",
+   "pixabay:64754",
+   "pixabay:107303",
+   "pixabay:209264",
+   "pixabay:10",
+   "pixabay:369072"
+  ],
+  "publish_at": "2026-11-18T15:06:00Z"
+ },
+ {
+  "date": "2026-11-18",
+  "kind": "short",
+  "topic": "Fast Radio Bursts",
+  "title": "Alien Signals?",
+  "video_id": "UXw1AzBX0wQ",
+  "clips": [
+   "pixabay:10339",
+   "pixabay:134014",
+   "pixabay:3134",
+   "pixabay:134018",
+   "pixabay:21061",
+   "pixabay:2528"
+  ],
+  "publish_at": "2026-11-18T21:06:00Z"
  }
 ]
