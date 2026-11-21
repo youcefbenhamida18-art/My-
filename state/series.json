@@ -1,0 +1,80 @@
+{
+ "bible": {
+  "title_ja": "蝕神の階梯",
+  "title_ar": "سُلّم الكسوف الإلهي",
+  "premise": "In a fractured world where humanity cowers in cavernous bastions beneath a false sun, ascension is strictly gated by bloodline-inherited Solar Crests. Kael, a Crestless salvage scout, is betrayed and thrown into the forbidden Abyssal Sinks as live bait by his noble squad. Near death, he merges with an entombed Primordial Singularity, gaining an uncapped progression path known as Null-Ascension. For every Tier unlocked, Kael gains reality-bending power—but the system demands an irreplaceable mortal tax, erasing memories, physical senses, and human warmth in exchange for cosmic authority.",
+  "world": "Ostra-Terra, a subterranean planetary mantle split into seven descending concentric strata. Society is ruled by the Solar Hierarchs, who harvest light-cores from dormant Titans. The lower depths swarm with biomechanical shadow-beasts and crystallized ancient ruins where spatial geometry warps and forgotten divine relics slumber.",
+  "art_style": "dark fantasy anime key visual, high contrast ink and glow, sharp dynamic linework, vivid violet and gold particle effects, moody volumetric lighting, ethereal cinematic framing",
+  "characters": [
+   {
+    "id": "kael_crestless",
+    "name_ja": "カエル",
+    "name_ar": "كايل",
+    "gender": "male",
+    "voice": "hero",
+    "look": "Spiky raven hair with silver fringe, piercing amethyst eyes, tattered black trench-coat, jagged obsidian scars across right arm, vibrant violet twilight glow."
+   },
+   {
+    "id": "liora_valkross",
+    "name_ja": "リオラ",
+    "name_ar": "ليورا",
+    "gender": "female",
+    "voice": "villain",
+    "look": "High platinum ponytail, stern amber eyes, ornate gilded plate armor, thin dueling scar over nose bridge, blazing solar-gold aura."
+   },
+   {
+    "id": "varek_the_blind",
+    "name_ja": "ヴァレク",
+    "name_ar": "فاريك",
+    "gender": "male",
+    "voice": "elder",
+    "look": "Shaved head, crimson rune-stitched silk blindfold, weathered grey wanderer tunic, cracked porcelain-like skin along collarbone, smoldering ember-red residual glow."
+   },
+   {
+    "id": "sari_hazel",
+    "name_ja": "サリ",
+    "name_ar": "ساري",
+    "gender": "female",
+    "voice": "young",
+    "look": "Short teal bob, wide olive-green eyes, leather mechanic vest with brass vials, light scratch scars on cheek, soft mint-green luminescence."
+   },
+   {
+    "id": "entity_malakor",
+    "name_ja": "マラコール",
+    "name_ar": "مالاكور",
+    "gender": "male",
+    "voice": "narrator",
+    "look": "Drifting shadowy cosmic silhouette, starlit pupil-less gaze, crown of fractured spatial shards, floating torn celestial mantle, deep abyssal cerulean radiance."
+   }
+  ],
+  "arc": [
+   "Betrayed by his squad commander Liora in the deep abyss, Kael falls into the Singularity Vault and awakens an uncapped Tier Zero core as the chasm seals.",
+   "Kael slays the guardian Colossus to reach Tier One, gaining phantom blade arts but permanently losing his sense of taste and physical warmth.",
+   "Navigating the flooded crystal layer, Kael rescues an exiled alchemist who recognizes his forbidden energy signature as a harbinger of the world's end.",
+   "Climbing to Tier Two by collapsing an ancient subterranean spire, Kael sacrifices all memories of his childhood home to obtain spatial phase-dashing.",
+   "Re-entering the lowest civilian outpost under a false alias, Kael intercepts an assassination squad sent to purge surviving Crestless witnesses.",
+   "Kael breaks into the Iron Citadel's proving grounds, humiliating Liora's elite champions until an ancient planetary alarm triggers worldwide panic.",
+   "Advancing to Tier Three, Kael trades his ability to dream for absolute kinetic repulsion just as the Citadel's High Inquisitor reveals the false sun is a parasite.",
+   "Kael confronts Liora in the Celestial Engine room, discovering she made a similar unholy pact to keep her noble house from total eradication.",
+   "The false sun fractures early, releasing swarms of solar locusts upon the upper bastion while Kael initiates Tier Four at the expense of his name.",
+   "Standing atop the shattering spire with blades of null-matter drawn, Kael faces down the descent of the true Parasite God as the heavens shatter."
+  ],
+  "hashtags": [
+   "#ShokushinNoKaitei",
+   "#DarkFantasyAnime",
+   "#ProgressionAnime",
+   "#GrimdarkHero",
+   "#IndieAnimeHook"
+  ]
+ },
+ "episodes": [
+  {
+   "n": 1,
+   "title": "سلّم التهام الآلهة: عهد من قاع الهاوية",
+   "summary": "Betrayed by squad commander Liora Valkross at the edge of the forbidden Abyssal Sinks, the Crestless scout Kael is cast into the bottomless depths as sacrificial bait. Plummeting into the entombed Singularity Vault, he confronts the primordial entity Malakor and accepts a soul-binding pact of Null-Ascension to survive. As the Primordial Singularity fuses into Kael's shattered chest, his right arm is consumed by searing obsidian scars of Tier Zero. Above the abyss, Liora watches the rift violently seal as ancient horrors awaken around Kael in the subterranean dark. Trapped as the Abyssal Sinks seal shut, Kael unleashes the forbidden Tier Zero power of the Primordial Singularity to obliterate an attacking horde of shadow beasts. However, the uncapped progression system immediately demands its first cruel tax, permanently stripping away Kael's physical sense of warmth just as an ancient crystal titan awakens. Kael unleashes the forbidden Tier Zero void blade to destroy the Abyssal Titan, but pays the permanent tax of losing his physical warmth. As Liora seals the chasm from above assuming he is dead, Malakor reveals the terrifying truth that the world's worshipped sun is a parasite god.",
+   "yt": "qTmkhfjoJVE",
+   "short": "UQn9uefYpTM"
+  }
+ ],
+ "last_day": "2026-11-22"
+}
