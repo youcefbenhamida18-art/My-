@@ -1,9 +1,13 @@
 requests
+numpy
+scipy
+opencv-python-headless
+Pillow
 edge-tts
-gTTS
+arabic-reshaper
+python-bidi
+transformers>=4.45
 google-api-python-client
 google-auth
 google-auth-httplib2
-Pillow
-arabic-reshaper
-python-bidi
+tzdata
