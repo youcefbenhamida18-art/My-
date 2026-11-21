@@ -1,4 +1,5 @@
 """Gemini story room: an ORIGINAL dark-fantasy series, written act by act for retention."""
+import functools
 import json
 import re
 import time
@@ -7,28 +8,69 @@ import requests
 
 from .config import ACTS, EPISODE_MIN, env, gemini_keys, log
 
-MODELS = env("GEMINI_MODELS", "gemini-2.5-flash,gemini-2.0-flash").split(",")
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
+LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 MOODS = ("embers", "shadow", "rain", "aura", "dust", "snow")
+FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]          # used only if discovery fails
+NOT_TEXT = ("tts", "image", "live", "audio", "embedding", "native", "omni", "cyber", "robotics",
+            "computer", "translate", "transcribe", "imagen", "veo")
+
+
+def _rank(name):
+    v = re.search(r"gemini-(\d+(?:\.\d+)?)", name)
+    return ("preview" in name or "exp" in name, -(float(v.group(1)) if v else 0), "lite" in name, name)   # stable first, then newest
+
+
+@functools.lru_cache(1)
+def discover_models():
+    """Self-healing: ask the API which Flash models THIS key can use today, newest stable first.
+    Model names get retired (gemini-2.0/2.5-flash already 404), so nothing is hard-coded except a last resort.
+    Override with the GEMINI_MODELS env var (comma separated) if you want to force one."""
+    forced = [m.strip() for m in env("GEMINI_MODELS", "").split(",") if m.strip()]
+    found = []
+    for key in gemini_keys():
+        try:
+            r = requests.get(LIST_URL, headers={"x-goog-api-key": key}, params={"pageSize": 200}, timeout=30)
+            r.raise_for_status()
+            for m in r.json().get("models", []):
+                n = m["name"].split("/")[-1]
+                if ("generateContent" in m.get("supportedGenerationMethods", []) and n.startswith("gemini-")
+                        and "flash" in n and not any(b in n for b in NOT_TEXT)):
+                    found.append(n)
+            if found:
+                break
+        except Exception as e:  # noqa: BLE001
+            log.warning("ListModels failed: %s", e)
+    ordered = forced + [n for n in sorted(set(found), key=_rank) if n not in forced][:5]
+    ordered = ordered or FALLBACK_MODELS
+    log.info("Gemini models to try: %s", ordered)
+    return ordered
 
 
 def ask(prompt, temperature=1.0):
-    """Rotate across models and API keys until one answers with valid JSON."""
+    """Walk the discovered models and API keys until one answers with valid JSON."""
     last = None
-    for model in MODELS:
+    for model in discover_models():
         for key in gemini_keys():
             try:
                 r = requests.post(
-                    URL.format(model.strip()), headers={"x-goog-api-key": key}, timeout=300,
+                    URL.format(model), headers={"x-goog-api-key": key}, timeout=300,
                     json={"contents": [{"parts": [{"text": prompt}]}],
                           "generationConfig": {"temperature": temperature,
                                                "responseMimeType": "application/json",
                                                "maxOutputTokens": 30000}})
+                if r.status_code == 404:                       # model retired/unavailable: next model
+                    last = f"{model}: 404 {r.text[:160]}"
+                    log.warning("model %s not available (404) - trying the next one", model)
+                    break
                 if r.status_code in (429, 500, 503):
-                    last = r.status_code
+                    last = f"{model}: {r.status_code}"
                     time.sleep(4)
                     continue
-                r.raise_for_status()
+                if r.status_code >= 400:
+                    last = f"{model}: {r.status_code} {r.text[:200]}"
+                    log.warning("Gemini %s -> %s", model, last)
+                    continue
                 txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
                 txt = re.sub(r"^```(?:json)?|```$", "", txt.strip(), flags=re.M).strip()
                 return json.loads(txt)
