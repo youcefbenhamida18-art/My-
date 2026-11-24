@@ -1,0 +1,110 @@
+name: Make lesson videos
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "lessons/**"
+  workflow_dispatch:
+    inputs:
+      lesson:
+        description: "Lesson to (re)make, e.g. lessons/biochemistry/glycolysis  (empty = every new lesson)"
+        required: false
+        default: ""
+      test_mode:
+        description: "Quick test: 2 sections only, NO YouTube upload (video is saved as an artifact)"
+        type: boolean
+        default: false
+      upload:
+        description: "Upload to YouTube (private)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: make-lesson-videos
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      # ---- secrets: if your secret names are different, change ONLY the part after "secrets." ----
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      # ---- manual-run inputs ----
+      LESSON_PATH: ${{ github.event.inputs.lesson }}
+      TEST_MODE: ${{ github.event.inputs.test_mode }}
+      UPLOAD: ${{ github.event.inputs.upload }}
+      # ---- optional settings (uncomment to change) ----
+      # BOARD_THEME: white            # white board instead of the green chalkboard
+      # TTS_EN_VOICE: en-US-AvaMultilingualNeural
+      # TTS_AR_VOICE: ar-DZ-AminaNeural
+      # PART_MINUTES: "35"            # each YouTube video is about this long
+      # MAX_LESSONS: "3"              # lessons per run
+      # GEMINI_MODEL: gemini-3.8-flash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: ffmpeg
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Extra fonts and Office converter (best effort)
+        run: |
+          sudo apt-get install -y --no-install-recommends fonts-hosny-amiri fonts-comic-neue || true
+          if find lessons -type f \( -iname '*.pptx' -o -iname '*.docx' \) 2>/dev/null | grep -q .; then
+            sudo apt-get install -y --no-install-recommends libreoffice-impress libreoffice-writer || true
+          fi
+
+      - name: Python packages
+        run: pip install -r requirements.txt
+
+      - name: Restore cache (LLM answers, voices, fonts)
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache
+          key: lesson-cache-${{ github.run_id }}
+          restore-keys: lesson-cache-
+
+      - name: Make the videos
+        run: python scripts/main.py
+
+      - name: Save cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: lesson-cache-${{ github.run_id }}
+
+      - name: Keep test videos (only when not uploaded)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: videos
+          path: out/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Save upload records
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/uploaded.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update uploaded videos"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git push || true
+          fi
