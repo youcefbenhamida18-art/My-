@@ -1,0 +1,82 @@
+name: setup-mangaforge
+description: ffmpeg + fonts + Python packages + (optionally) Blender, all cached. Repository variables become settings.
+inputs:
+  blender:
+    description: "Install Blender ('true' / 'false')"
+    default: "true"
+  blender_series:
+    description: "Blender release series (4.2 ... 5.x); the newest patch of the series is downloaded"
+    default: "4.5"
+  vars_json:
+    description: "toJSON(vars) from the workflow: every repository variable becomes an environment setting (VIDEO_W, CYCLES_SAMPLES ...)"
+    default: "{}"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+        cache-dependency-path: requirements.txt
+
+    - name: System packages (ffmpeg with libass, Arabic/CJK fonts, the libraries Blender links against)
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq ffmpeg fontconfig fonts-noto-core fonts-noto-cjk \
+          libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0 libsm6 libice6 libgl1 libegl1
+        fc-cache -f >/dev/null
+
+    - name: Python packages (CPU-only torch for the depth model)
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+
+    - name: Depth model cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: hf-depth-anything-v2-small-v1
+
+    - name: Blender cache
+      if: inputs.blender == 'true'
+      id: blender-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/blender
+        key: blender-${{ inputs.blender_series }}-linux-x64-v1
+
+    - name: Install Blender ${{ inputs.blender_series }} (newest patch release of the series)
+      if: inputs.blender == 'true' && steps.blender-cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        SERIES: ${{ inputs.blender_series }}
+      run: |
+        set -euo pipefail
+        base="https://download.blender.org/release/Blender${SERIES}/"
+        file=$(curl -fsSL "$base" | grep -oE 'blender-[0-9]+\.[0-9]+\.[0-9]+-linux-x64\.tar\.xz' | sort -uV | tail -1)
+        test -n "$file" || { echo "no Linux build found at $base"; exit 1; }
+        echo "downloading $file"
+        mkdir -p "$HOME/blender"
+        curl -fsSL "$base$file" | tar -xJ -C "$HOME/blender" --strip-components=1
+
+    - name: Point the pipeline at Blender
+      if: inputs.blender == 'true'
+      shell: bash
+      run: |
+        echo "BLENDER_BIN=$HOME/blender/blender" >> "$GITHUB_ENV"
+        "$HOME/blender/blender" --version | head -1
+
+    - name: Repository variables -> settings
+      shell: bash
+      env:
+        VARS_JSON: ${{ inputs.vars_json }}
+      run: |
+        python - <<'PY' >> "$GITHUB_ENV"
+        import json, os
+        for k, v in json.loads(os.environ.get("VARS_JSON") or "{}").items():
+            if k.isidentifier() and "\n" not in str(v):
+                print(f"{k}={v}")
+        PY
