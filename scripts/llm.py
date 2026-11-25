@@ -170,11 +170,11 @@ def parse_json(text: str):
         t = t[a:b + 1]
     t = _LATEX_B.sub(r"\\\\", t)
     try:
-        return json.loads(t)
+        return json.loads(t, strict=False)
     except Exception:
         pass
     t2 = _BAD_ESC.sub(r"\\\\", t)
-    return json.loads(t2)
+    return json.loads(t2, strict=False)
 
 
 def _clean(s, n=400) -> str:
