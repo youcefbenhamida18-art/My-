@@ -1,72 +1,273 @@
 {
+ "version": 2,
  "bible": {
-  "title_ja": "蝕神の階梯",
-  "title_ar": "سُلّم الكسوف الإلهي",
-  "premise": "In a fractured world where humanity cowers in cavernous bastions beneath a false sun, ascension is strictly gated by bloodline-inherited Solar Crests. Kael, a Crestless salvage scout, is betrayed and thrown into the forbidden Abyssal Sinks as live bait by his noble squad. Near death, he merges with an entombed Primordial Singularity, gaining an uncapped progression path known as Null-Ascension. For every Tier unlocked, Kael gains reality-bending power—but the system demands an irreplaceable mortal tax, erasing memories, physical senses, and human warmth in exchange for cosmic authority.",
-  "world": "Ostra-Terra, a subterranean planetary mantle split into seven descending concentric strata. Society is ruled by the Solar Hierarchs, who harvest light-cores from dormant Titans. The lower depths swarm with biomechanical shadow-beasts and crystallized ancient ruins where spatial geometry warps and forgotten divine relics slumber.",
-  "art_style": "dark fantasy anime key visual, high contrast ink and glow, sharp dynamic linework, vivid violet and gold particle effects, moody volumetric lighting, ethereal cinematic framing",
+  "title_ja": "戦国妖狐",
+  "title_ar": "سينغوكو يوكو",
+  "logline": "In Sengoku-era Japan, a fox demon sister and her human brother travel the country fighting rogue spirits and evil bandits alongside a cowardly ronin.",
+  "genre": "Historical, Action, Fantasy, Supernatural, Comedy, Adventure",
+  "tone": "Energetic, dramatic, humorous, action-packed, mythological",
+  "world": "Set in Sengoku-period Japan where humans live alongside monsters and spirits known as Katawara. Some humans possess spiritual techniques and magic talismans to fight or transform, while spirits wield elemental powers. The land is filled with roving bandits, corrupt warriors, and wandering Katawara, creating a turbulent world of clash between human and spirit realms.",
+  "style": "vibrant manga key-art visual style, Sengoku era aesthetic, deep crimson red and ink black accent palette, dynamic action lines, traditional ink brush kanji typography, dramatic chiaroscuro lighting, traditional Japanese kimono and samurai garb",
   "characters": [
    {
-    "id": "kael_crestless",
-    "name_ja": "カエル",
-    "name_ar": "كايل",
+    "id": "jinka_sendou",
+    "name_ja": "山戸迅火",
+    "name_ar": "جينكا سيندو",
     "gender": "male",
     "voice": "hero",
-    "look": "Spiky raven hair with silver fringe, piercing amethyst eyes, tattered black trench-coat, jagged obsidian scars across right arm, vibrant violet twilight glow."
+    "look": "long black hair tied back in ponytail, dark grey samurai kimono, wooden staff, sandals; transformed form features wild spiky long orange-red hair, fox ears, sharp claws, black torn kimono",
+    "eyes": "sharp narrow dark amber eyes, intense glare, thin straight brows",
+    "role": "protagonist",
+    "personality": "A human youth who despises humans and adores spirits, possessing a fierce temper and powerful transformation abilities.",
+    "ref": {
+     "body": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/jinka_sendou.png",
+     "face": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/jinka_sendou_face.png",
+     "colour": false
+    }
    },
    {
-    "id": "liora_valkross",
-    "name_ja": "リオラ",
-    "name_ar": "ليورا",
+    "id": "youko_tama",
+    "name_ja": "たま",
+    "name_ar": "تاما",
     "gender": "female",
-    "voice": "villain",
-    "look": "High platinum ponytail, stern amber eyes, ornate gilded plate armor, thin dueling scar over nose bridge, blazing solar-gold aura."
+    "voice": "girl",
+    "look": "short black hair with fox ear-like tufts, pale pink kimono, dark red and black obi sash, straw sandals",
+    "eyes": "large round amber eyes, calm expression, delicate arching brows",
+    "role": "protagonist",
+    "personality": "A calm and wise fox demon who deeply loves humans and seeks to guide them toward righteousness alongside her brother.",
+    "ref": {
+     "body": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/youko_tama.png",
+     "face": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/youko_tama_face.png",
+     "colour": true
+    }
    },
    {
-    "id": "varek_the_blind",
-    "name_ja": "ヴァレク",
-    "name_ar": "فاريك",
+    "id": "hyoudou_shinsuke",
+    "name_ja": "兵頭真介",
+    "name_ar": "هيودو شينسكي",
     "gender": "male",
-    "voice": "elder",
-    "look": "Shaved head, crimson rune-stitched silk blindfold, weathered grey wanderer tunic, cracked porcelain-like skin along collarbone, smoldering ember-red residual glow."
-   },
-   {
-    "id": "sari_hazel",
-    "name_ja": "サリ",
-    "name_ar": "ساري",
-    "gender": "female",
     "voice": "young",
-    "look": "Short teal bob, wide olive-green eyes, leather mechanic vest with brass vials, light scratch scars on cheek, soft mint-green luminescence."
-   },
-   {
-    "id": "entity_malakor",
-    "name_ja": "マラコール",
-    "name_ar": "مالاكور",
-    "gender": "male",
-    "voice": "narrator",
-    "look": "Drifting shadowy cosmic silhouette, starlit pupil-less gaze, crown of fractured spatial shards, floating torn celestial mantle, deep abyssal cerulean radiance."
+    "look": "short spiky black hair, cheek bandage, light blue samurai kimono, katana sheathed at waist, carrying a straw hat",
+    "eyes": "small narrow dark eyes, wide nervous pupils, thick straight eyebrows",
+    "role": "ally",
+    "personality": "A self-proclaimed traveling ronin who is easily frightened yet curious and ambitious to grow stronger.",
+    "ref": {
+     "body": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/hyoudou_shinsuke.png",
+     "face": "state/manga/3fbeec9f-9c47-4565-8f79-972807c99279/refs/hyoudou_shinsuke_face.png",
+     "colour": false
+    }
    }
   ],
-  "arc": [
-   "Betrayed by his squad commander Liora in the deep abyss, Kael falls into the Singularity Vault and awakens an uncapped Tier Zero core as the chasm seals.",
-   "Kael slays the guardian Colossus to reach Tier One, gaining phantom blade arts but permanently losing his sense of taste and physical warmth.",
-   "Navigating the flooded crystal layer, Kael rescues an exiled alchemist who recognizes his forbidden energy signature as a harbinger of the world's end.",
-   "Climbing to Tier Two by collapsing an ancient subterranean spire, Kael sacrifices all memories of his childhood home to obtain spatial phase-dashing.",
-   "Re-entering the lowest civilian outpost under a false alias, Kael intercepts an assassination squad sent to purge surviving Crestless witnesses.",
-   "Kael breaks into the Iron Citadel's proving grounds, humiliating Liora's elite champions until an ancient planetary alarm triggers worldwide panic.",
-   "Advancing to Tier Three, Kael trades his ability to dream for absolute kinetic repulsion just as the Citadel's High Inquisitor reveals the false sun is a parasite.",
-   "Kael confronts Liora in the Celestial Engine room, discovering she made a similar unholy pact to keep her noble house from total eradication.",
-   "The false sun fractures early, releasing swarms of solar locusts upon the upper bastion while Kael initiates Tier Four at the expense of his name.",
-   "Standing atop the shattering spire with blades of null-matter drawn, Kael faces down the descent of the true Parasite God as the heavens shatter."
+  "locations": [
+   {
+    "id": "dirt_road",
+    "name": "Mountain Dirt Road",
+    "look": "dirt path surrounded by tall wild grass, distant pine trees, mountain ridge under daytime sky"
+   },
+   {
+    "id": "riverbank",
+    "name": "Rocky Riverbank",
+    "look": "rocky shore next to a clear stream, scattered boulders, forest trees in background"
+   }
   ],
-  "hashtags": [
-   "#ShokushinNoKaitei",
-   "#DarkFantasyAnime",
-   "#ProgressionAnime",
-   "#GrimdarkHero",
-   "#IndieAnimeHook"
-  ]
+  "arc": "In Chapter 1, Youko Tama and her adopted human brother Jinka travel across Sengoku-era Japan aiming to stop evil deeds and reform wicked humans and spirits. On a dirt road, they encounter a gang of bandits demanding their belongings. Jinka uses an earth-fist talisman magic to swiftly send the bandits flying into the sky, knocking them unconscious. Disappointed that they knocked out the bandits before questioning them about their hideout, Tama and Jinka resume their trek. While resting and eating rice balls by a river, Tama senses someone tailing them and forces out a nervous traveling ronin named Hyoudou Shinsuke, who admits he was fascinated by Jinka's mysterious technique.",
+  "source": {
+   "manga_id": "3fbeec9f-9c47-4565-8f79-972807c99279",
+   "title": "Sengoku Youko",
+   "url": "https://mangadex.org/title/3fbeec9f-9c47-4565-8f79-972807c99279",
+   "authors": [
+    "Mizukami Satoshi"
+   ]
+  }
  },
+ "manga": {
+  "id": "3fbeec9f-9c47-4565-8f79-972807c99279",
+  "title": "Sengoku Youko",
+  "alt_titles": [
+   "Hồ Ly Thời Loạn",
+   "Warring States Youko",
+   "戦国妖狐"
+  ],
+  "description": "\"Stop your evil deeds and take the right path!\" That is the creed of Youko Tama and her younger step brother, Jinka Sendou. The two demon siblings travel the country to stop the deeds of all evil doers, along with a scaredy-cat swordsman they picked up along the way, Hyoudou Shinsuke. During their travels, they will come across a monk organization with more than suspicious methods and they'll soon be at war.",
+  "tags": [
+   "Historical",
+   "Action",
+   "Demons",
+   "Ghosts",
+   "Romance",
+   "Comedy",
+   "Samurai",
+   "Adventure",
+   "Drama",
+   "Fantasy",
+   "Supernatural"
+  ],
+  "demographic": "shounen",
+  "lang": "ja",
+  "status": "completed",
+  "year": 2008,
+  "cover": "6771e954-8ed7-40d8-bcdb-7eef40d8799b.jpg",
+  "authors": [
+   "Mizukami Satoshi"
+  ],
+  "artists": [
+   "Mizukami Satoshi"
+  ],
+  "url": "https://mangadex.org/title/3fbeec9f-9c47-4565-8f79-972807c99279",
+  "readable_chapters": 100,
+  "first_chapter": 1.0,
+  "picked_at": "2026-11-25",
+  "score": 4.29,
+  "like": "Demon Slayer: Kimetsu no Yaiba",
+  "reason": "automatic (tags similar to the reference series)",
+  "begins_at_1": true
+ },
+ "episode": 1,
+ "part": 2,
+ "week_outline": {
+  "episode_title_ja": "乱世を憂う者たち",
+  "episode_title_ar": "ذوو الهمم في زمن الاضطراب",
+  "episode_summary": "In Sengoku-era Japan, fox demon Tama and her human brother Jinka travel the country reforming wicked humans and spirits. After routing a bandit gang and rescuing the cowardly ronin Shinsuke, they discover a dark threat looming as powerful exorcists begin hunting rogue Katawara.",
+  "parts": [
+   {
+    "part": 1,
+    "title_ja": "乱世の憂い",
+    "title_ar": "حسرة العصر الاضطرابي",
+    "beat": "On a dusty Sengoku road, Jinka Sendou and Youko Tama are ambushed by mocking bandits. Jinka casually drops talisman papers, summoning massive spectral earth fists that launch the bandits high into the clouds. While resting at a riverbank, Tama senses an intruder hiding in the bushes and drags out Hyoudou Shinsuke, a terrified traveling ronin fascinated by Jinka's spirit technique.",
+    "locations": [
+     "dirt_road",
+     "riverbank"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "Massive spectral fists erupting from glowing paper talismans and launching bandits flying into the sky.",
+    "mood": "energetic",
+    "hook": "Shinsuke nervously exposes himself and begs to know the secret behind Jinka's magic."
+   },
+   {
+    "part": 2,
+    "title_ja": "鬼首衆の陣",
+    "title_ar": "مخيم عصابة الخوذة الشيطانية",
+    "beat": "Jinka explains his spirit golem art, terrifying Shinsuke with a giant snake apparition. Shinsuke offers to guide the duo to the infamous Oni Helmet Gang hideout in exchange for traveling together. Reaching the forest camp, Tama boldly steps forward and delivers an impassioned utopian speech urging the ruthless bandits to drop their weapons and embrace peace and love.",
+    "locations": [
+     "dirt_road"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "Jinka conjuring a towering, ghostly spirit snake that looms terrifyingly over the trembling Shinsuke.",
+    "mood": "humorous",
+    "hook": "The bandits mock Tama's speech and draw their swords to attack the group."
+   },
+   {
+    "part": 3,
+    "title_ja": "精霊変化",
+    "title_ar": "التحول الشيطاني",
+    "beat": "As the bandits charge, a panicking Shinsuke rushes forward and accidentally slices the bandit leader's helmet in half. The broken helmet reveals a grotesque, multi-limbed demon underneath, petrifying the gang. Recognizing the monster, Tama touches Jinka's hand to initiate their spirit-fusion ritual, unleashing a surging aura of fox power.",
+    "locations": [
+     "dirt_road"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "The spirit-fusion transformation where Jinka's hair explodes into wild white-orange fox fur amid burning spiritual energy.",
+    "mood": "battle",
+    "hook": "Jinka stands fully transformed into a fierce fox demon hybrid, ready to crush the multi-limbed beast."
+   },
+   {
+    "part": 4,
+    "title_ja": "五仏の棍",
+    "title_ar": "عصا البوذات الخمسة",
+    "beat": "Transformed Jinka politely apologizes to the demon boss before unleashing the devastating 'Rod of the Five Buddha' technique, pulverizing the monster into dust. The remaining bandits flee in terror while Jinka reverts to human form. Tama and Jinka strike their heroic pose as world-reformers, leaving Shinsuke utterly bewildered.",
+    "locations": [
+     "dirt_road"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "Jinka's staff slamming down with celestial light, completely vaporizing the demon boss into dust.",
+    "mood": "epic",
+    "hook": "On a distant highway, a strange rock monster named Shakugan appears in agonizing tears."
+   },
+   {
+    "part": 5,
+    "title_ja": "灼岩の叫び",
+    "title_ar": "صرخة شاكوغان",
+    "beat": "Monk Sairen of the Dangaishuu order attempts to subdue the rampaging rock creature Shakugan, but his sacred barrier fails instantly. The monster violently strikes down the monk and collapses on the dirt road, desperately weeping and calling out for Koshiro. A fleeing merchant escapes into the night as the creature stumbles away in agony.",
+    "locations": [
+     "dirt_road"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "Shakugan the massive jagged rock monster shattering Monk Sairen's glowing barrier with raw brute force.",
+    "mood": "dark",
+    "hook": "Shakugan collapses crying out a mysterious name before crawling into the dark forest."
+   },
+   {
+    "part": 6,
+    "title_ja": "断涯衆の怒り",
+    "title_ar": "غضب طائفة دانغايشو",
+    "beat": "Shinsuke trails Jinka and Tama into a bustling village inn to rest for the night. Inside, a panicked traveler shows a sketch of Shakugan to a group of Dangaishuu exorcist monks, confirming Monk Sairen's death. Enraged by the news, the head Dangaishuu monk smashes his arm through the wooden floor, swearing absolute annihilation on all demons.",
+    "locations": [
+     "riverbank"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "The Dangaishuu monk shattering the tavern floorboards with a single surge of rage and spiritual force.",
+    "mood": "tense",
+    "hook": "Shinsuke realizes the ruthless Dangaishuu monks are hunting demons right in their path."
+   },
+   {
+    "part": 7,
+    "title_ja": "鬼を斬る剣",
+    "title_ar": "سيف ذبح الشياطين",
+    "beat": "In their room, Tama explains the dangerous nature of the Dangaishuu exorcists. Shinsuke steps outside into the cool night air and dramatically vows to forge a sword capable of slaying demons, only to get kicked by Tama for his dramatic antics. As dawn breaks, the trio sets off together across the rolling grassy fields toward their next adventure.",
+    "locations": [
+     "dirt_road",
+     "riverbank"
+    ],
+    "characters": [
+     "jinka_sendou",
+     "youko_tama",
+     "hyoudou_shinsuke"
+    ],
+    "set_piece": "Shinsuke making his impassioned oath under a massive silver moon before Tama humorously kicks him down.",
+    "mood": "dawn",
+    "hook": "The shadow of the vengeful Dangaishuu monks follows close behind as the trio marches onward."
+   }
+  ],
+  "episode": 1
+ },
+ "shorts": [
+  {
+   "job": "e01p1",
+   "episode": 1,
+   "part": 1,
+   "title_ar": "حسرة العصر الاضطرابي",
+   "summary": "Jinka and Tama confront arrogant bandits on a dusty road, effortlessly dispatching them with massive spectral earth fists before meeting a timid ronin named Shinsuke at a riverbank.",
+   "video": "/home/runner/work/My-/My-/work/e01p1/out/short_e01p1.mp4",
+   "thumbnail": "/home/runner/work/My-/My-/work/e01p1/out/thumb_e01p1.jpg",
+   "vertical": "/home/runner/work/My-/My-/work/e01p1/out/short_e01p1_vertical.mp4",
+   "duration": 120.0,
+   "credits": [],
+   "date": "2026-11-25"
+  }
+ ],
  "episodes": [
   {
    "n": 1,
@@ -90,5 +291,5 @@
    "short": "uBYvZ5Fk-kg"
   }
  ],
- "last_day": "2026-11-24"
+ "last_day": "2026-11-25"
 }
