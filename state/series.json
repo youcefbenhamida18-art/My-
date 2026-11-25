@@ -123,7 +123,7 @@
   "begins_at_1": true
  },
  "episode": 1,
- "part": 2,
+ "part": 3,
  "week_outline": {
   "episode_title_ja": "乱世を憂う者たち",
   "episode_title_ar": "ذوو الهمم في زمن الاضطراب",
@@ -266,6 +266,19 @@
    "duration": 120.0,
    "credits": [],
    "date": "2026-11-25"
+  },
+  {
+   "job": "e01p2",
+   "episode": 1,
+   "part": 2,
+   "title_ar": "معسكر عصابة الخوذة الشيطانية",
+   "summary": "Jinka demonstrates his spirit golem technique, terrifying Shinsuke who guides them to the Oni Helmet Gang hideout. Tama delivers a passionate utopian speech to the ruthless bandits, only for them to attack and force Jinka into a swift display of lethal power.",
+   "video": "/home/runner/work/My-/My-/work/e01p2/out/short_e01p2.mp4",
+   "thumbnail": "/home/runner/work/My-/My-/work/e01p2/out/thumb_e01p2.jpg",
+   "vertical": "/home/runner/work/My-/My-/work/e01p2/out/short_e01p2_vertical.mp4",
+   "duration": 120.17,
+   "credits": [],
+   "date": "2026-11-25"
   }
  ],
  "episodes": [
@@ -291,5 +304,5 @@
    "short": "uBYvZ5Fk-kg"
   }
  ],
- "last_day": "2026-11-25"
+ "last_day": "2026-11-26"
 }
