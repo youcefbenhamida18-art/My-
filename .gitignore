@@ -1,3 +1,8 @@
 work/
 out/
 __pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.log
+_v1_reference/
