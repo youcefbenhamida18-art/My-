@@ -1,1 +1,301 @@
+name: daily-short
 
+# One ~2-minute short per day.  prepare (story, voices, art, shot plan)  ->  render (Blender, sharded over N machines)
+#   ->  finalize (join, subtitles, vertical cut, release, YouTube, state)  ->  restart (only if a time limit stopped something).
+#
+# Nothing is lost when GitHub's 6-hour limit stops a job: every stage is resumable (finished art, voices, drawings and shots are cached),
+# and the `restart` job starts a fresh run that continues exactly where this one stopped (up to MAX_ATTEMPTS times).
+
+on:
+  schedule:
+    - cron: "17 1 * * *"           # every day 01:17 UTC (GitHub may start it a few minutes late)
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Quick draft: half size, few samples, no upload (to try things)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Do everything except uploading to YouTube"
+        type: boolean
+        default: false
+      attempt:
+        description: "Restart counter - set by the workflow itself, leave at 1"
+        default: "1"
+
+concurrency:
+  group: mangaforge-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write                  # commit state/series.json, create releases
+  actions: write                   # start the continuation run / the weekly run
+
+env:
+  BLENDER_SERIES: ${{ vars.BLENDER_SERIES || '4.5' }}
+  SHARDS: ${{ vars.SHARDS || '8' }}                              # machines used for rendering (max 20 run at the same time on the free plan)
+  RENDER_BUDGET_MIN: ${{ vars.RENDER_BUDGET_MIN || '325' }}      # soft limit per job; GitHub's hard limit is 360
+  PREP_BUDGET_MIN: ${{ vars.PREP_BUDGET_MIN || '325' }}
+  MAX_ATTEMPTS: ${{ vars.MAX_ATTEMPTS || '12' }}
+  VERTICAL: "1"                                                  # also make the 9:16 Short
+  RENDER_SCALE: ${{ inputs.draft && '0.5' || (vars.RENDER_SCALE || '1.0') }}
+  CYCLES_SAMPLES: ${{ inputs.draft && '6' || (vars.CYCLES_SAMPLES || '24') }}
+  DRY_RUN: ${{ (inputs.dry_run || inputs.draft) && '1' || '0' }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    outputs:
+      job: ${{ steps.jobid.outputs.job }}
+      shards: ${{ steps.prep.outputs.shards }}
+      shard_count: ${{ steps.prep.outputs.shard_count }}
+      budget_hit: ${{ steps.prep.outputs.budget_hit }}
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+      GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+      HORDE_API_KEY: ${{ secrets.HORDE_API_KEY }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender: "false"
+          vars_json: ${{ toJSON(vars) }}
+
+      - name: Which short is next?
+        id: jobid
+        run: python -m mangaforge jobid
+
+      - name: Restore an earlier attempt (story, voices and every finished picture are reused)
+        uses: actions/cache/restore@v4
+        with:
+          path: work/${{ steps.jobid.outputs.job }}
+          key: prep-${{ steps.jobid.outputs.job }}-none
+          restore-keys: |
+            prep-${{ steps.jobid.outputs.job }}-
+
+      - name: Prepare - story, voices, art, shot plan
+        id: prep
+        run: |
+          set +e
+          timeout --kill-after=120 "${PREP_BUDGET_MIN}m" python -m mangaforge prepare
+          rc=$?
+          if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            echo "time budget reached while preparing - a new run will continue"
+            echo "budget_hit=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit $rc
+
+      - name: "Keep the preparation (also when it failed half-way: finished pictures are not paid for twice)"
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: work/${{ steps.jobid.outputs.job }}
+          key: prep-${{ steps.jobid.outputs.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Hand the plan to the render machines
+        if: steps.prep.outputs.budget_hit != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prep
+          path: |
+            work/${{ steps.jobid.outputs.job }}
+            state
+          retention-days: 3
+
+  render:
+    needs: prepare
+    if: needs.prepare.outputs.budget_hit != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.prepare.outputs.shards) }}
+    env:
+      JOB: ${{ needs.prepare.outputs.job }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender_series: ${{ env.BLENDER_SERIES }}
+          vars_json: ${{ toJSON(vars) }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: prep
+          path: .
+
+      - name: Restore this shard's drawings from the previous attempt
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            work/${{ env.JOB }}/frames
+            work/${{ env.JOB }}/shots
+          key: frames-${{ env.JOB }}-${{ matrix.shard }}-none
+          restore-keys: |
+            frames-${{ env.JOB }}-${{ matrix.shard }}-
+
+      - name: Render shard ${{ matrix.shard }} of ${{ needs.prepare.outputs.shard_count }}
+        run: |
+          set +e
+          python -m mangaforge render --job "$JOB" --shard "${{ matrix.shard }}/${{ needs.prepare.outputs.shard_count }}" \
+            --deadline-minutes "$RENDER_BUDGET_MIN"
+          rc=$?
+          if [ $rc -eq 3 ]; then          # out of time, not an error: the finished drawings are kept for the next run
+            mkdir -p flags && echo 1 > "flags/incomplete-${{ matrix.shard }}"
+            rc=0
+          fi
+          exit $rc
+
+      - name: Keep the drawings (so a restart continues instead of starting over)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            work/${{ env.JOB }}/frames
+            work/${{ env.JOB }}/shots
+          key: frames-${{ env.JOB }}-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Finished shots
+        uses: actions/upload-artifact@v4
+        with:
+          name: shots-${{ matrix.shard }}
+          path: work/${{ env.JOB }}/shots
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Time-limit flag
+        uses: actions/upload-artifact@v4
+        with:
+          name: flag-${{ matrix.shard }}
+          path: flags
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Report - Blender features that failed or were skipped in this shard
+        if: always()
+        run: |
+          python - <<'PY'
+          import glob, json, os
+          bad = {}
+          for p in glob.glob(f"work/{os.environ['JOB']}/frames/shot_*/done.json"):
+              for k, v in (json.load(open(p)).get("features") or {}).items():
+                  if str(v).startswith(("failed", "skipped")):
+                      key = f"{k}: {v}"[:200]
+                      bad[key] = bad.get(key, 0) + 1
+          print("\n".join(f"{n:>3}x {k}" for k, n in sorted(bad.items())) or "every enabled feature worked in every shot")
+          PY
+
+  finalize:
+    needs: [prepare, render]
+    if: always() && needs.prepare.result == 'success' && needs.prepare.outputs.budget_hit != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    outputs:
+      complete: ${{ steps.gate.outputs.complete }}
+    env:
+      JOB: ${{ needs.prepare.outputs.job }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender: "false"
+          vars_json: ${{ toJSON(vars) }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: prep
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shots-*
+          merge-multiple: true
+          path: work/${{ env.JOB }}/shots
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: flag-*
+          merge-multiple: true
+          path: flags
+
+      - name: Is every shot finished?
+        id: gate
+        run: |
+          if [ -n "$(ls -A flags 2>/dev/null)" ]; then
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+            echo "some shots stopped at the time limit - the restart job continues them"
+          elif [ "${{ needs.render.result }}" != "success" ]; then
+            echo "::error::a render shard failed (this was not the time limit) - open its log; restarting would not help"
+            exit 1
+          else
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble - join the shots, sound, subtitles, vertical cut
+        id: assemble
+        if: steps.gate.outputs.complete == 'true'
+        run: python -m mangaforge assemble --job "$JOB"
+
+      - name: Upload to YouTube (landscape + Short)
+        if: steps.gate.outputs.complete == 'true'
+        run: python -m mangaforge publish --job "$JOB"
+
+      - name: Keep the files as a GitHub release (the weekly episode is joined from these)
+        if: steps.gate.outputs.complete == 'true'
+        run: |
+          shopt -s nullglob
+          files=(work/"$JOB"/out/short_*.mp4 work/"$JOB"/out/thumb_*.jpg work/"$JOB"/out/*.ass)
+          gh release create "short-$JOB" "${files[@]}" --title "short $JOB" --notes "Daily short $JOB (generated)." \
+            || gh release upload "short-$JOB" "${files[@]}" --clobber
+
+      - name: Remember the story so far (state/series.json)
+        if: steps.gate.outputs.complete == 'true'
+        run: |
+          git config user.name "mangaforge-bot"
+          git config user.email "mangaforge-bot@users.noreply.github.com"
+          git add state/series.json
+          git diff --cached --quiet || git commit -m "state: $JOB done"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 5; done
+
+      - name: Is the week complete? Join the 7 shorts into the episode
+        if: steps.gate.outputs.complete == 'true' && steps.assemble.outputs.weekly_due == 'true'
+        run: gh workflow run weekly.yml --ref "$GITHUB_REF_NAME" -f draft="${{ inputs.draft }}" -f dry_run="${{ inputs.dry_run }}"
+
+      - name: Files of this short
+        if: steps.gate.outputs.complete == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-${{ env.JOB }}
+          path: |
+            work/${{ env.JOB }}/out/short_*.mp4
+            work/${{ env.JOB }}/out/thumb_*.jpg
+          retention-days: 14
+
+  restart:
+    needs: [prepare, render, finalize]
+    if: always() && (needs.prepare.outputs.budget_hit == 'true' || needs.finalize.outputs.complete == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Continue in a fresh run (finished work is cached)
+        run: |
+          n="${{ inputs.attempt || 1 }}"
+          if [ "$n" -ge "$MAX_ATTEMPTS" ]; then
+            echo "::error::still not finished after $n attempts - check the logs (a shot that never finishes needs a look)"
+            exit 1
+          fi
+          gh workflow run daily.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" \
+            -f attempt="$((n + 1))" -f draft="${{ inputs.draft || 'false' }}" -f dry_run="${{ inputs.dry_run || 'false' }}"

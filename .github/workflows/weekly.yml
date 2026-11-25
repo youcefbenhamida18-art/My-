@@ -1,0 +1,84 @@
+name: weekly-episode
+
+# Joins the week's 7 daily shorts into one episode (title card, chapters) and uploads it.
+# Started automatically by daily-short when the 7th short of the week is done; you can also run it by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Draft (no upload)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Do everything except uploading to YouTube"
+        type: boolean
+        default: false
+
+concurrency:
+  group: mangaforge-weekly
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  VERTICAL: "1"
+  DRY_RUN: ${{ (inputs.dry_run || inputs.draft) && '1' || '0' }}
+
+jobs:
+  episode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender: "false"
+          vars_json: ${{ toJSON(vars) }}
+
+      - name: Download this week's shorts from their releases
+        run: |
+          mkdir -p parts
+          python - <<'PY'
+          import json, subprocess
+          st = json.load(open("state/series.json", encoding="utf-8"))
+          jobs = [s["job"] for s in st["shorts"] if s.get("episode") == st["episode"]]
+          assert jobs, "no shorts recorded for the current episode in state/series.json"
+          for j in jobs:
+              subprocess.run(["gh", "release", "download", f"short-{j}", "--pattern", f"short_{j}.mp4", "--dir", "parts", "--clobber"], check=True)
+          print("downloaded", jobs)
+          PY
+
+      - name: Join the episode
+        id: join
+        run: python -m mangaforge weekly --parts-dir parts
+
+      - name: Upload the episode to YouTube
+        run: python -m mangaforge publish --weekly
+
+      - name: Keep the episode as a GitHub release
+        run: |
+          f=$(ls out/episode_*.mp4 | tail -1)
+          tag="episode-$(basename "$f" .mp4 | sed 's/episode_//')"
+          gh release create "$tag" "$f" --title "$tag" --notes "Weekly episode (generated)." || gh release upload "$tag" "$f" --clobber
+
+      - name: Remember the new episode number (state/series.json)
+        run: |
+          git config user.name "mangaforge-bot"
+          git config user.email "mangaforge-bot@users.noreply.github.com"
+          git add state/series.json
+          git diff --cached --quiet || git commit -m "state: episode joined"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 5; done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: episode
+          path: out/episode_*.mp4
+          retention-days: 14

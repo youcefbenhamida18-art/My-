@@ -1,0 +1,77 @@
+name: selftest
+
+# RUN THIS FIRST (Actions -> selftest -> Run workflow).  It proves, on a real runner, the two things that could not be proven when the
+# project was written: that the Blender scripts run in a REAL Blender, and what the picture looks like.
+# RENDER_STRICT=1 means a Blender failure fails this run loudly instead of silently falling back to the 2.5D OpenCV engine.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mangaforge/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/**"
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender: "false"
+      - run: pip install pytest
+      - run: python -m pytest -q -x
+
+  blender:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      RENDER_ENGINE: cycles
+      RENDER_STRICT: "1"
+      RENDER_SCALE: "0.5"
+      CYCLES_SAMPLES: "8"
+      VERTICAL: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          blender_series: ${{ vars.BLENDER_SERIES || '4.5' }}
+          vars_json: "{}"
+
+      - name: Doctor
+        run: python -m mangaforge doctor --blender
+
+      - name: Blender self-test (one tiny shot through the real scene script)
+        run: python -m mangaforge selftest
+
+      - name: Demo short, every shot drawn by Blender (no API keys needed)
+        run: python -m mangaforge demo --engine blender --seconds 12
+
+      - name: Report - which Blender features worked
+        if: always()
+        run: |
+          python - <<'PY'
+          import collections, glob, json
+          seen = collections.defaultdict(collections.Counter)
+          for p in glob.glob("work/demo/frames/shot_*/done.json"):
+              for k, v in (json.load(open(p)).get("features") or {}).items():
+                  seen[k][str(v).split(":")[0]] += 1
+          for k, c in sorted(seen.items()):
+              print(f"{k:32} " + " ".join(f"{s}x{n}" for s, n in c.items()))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo
+          path: |
+            work/demo/out/short_demo*.mp4
+            work/demo/out/result.json
+            work/demo/frames/shot_*/done.json
+          retention-days: 7
