@@ -1,14 +1,21 @@
+# core
 requests
+numpy
+scipy
+opencv-python-headless
+Pillow
+# Arabic text shaping (subtitles, titles, thumbnails)
+arabic-reshaper
+python-bidi
+# voices when VOICEVOX is not running (free Microsoft neural voices)
+edge-tts
+# depth maps for the 2.5D parallax (Depth-Anything-V2; torch is installed separately, CPU build)
+transformers>=4.45
+# optional: accurate character matte (rim light, hair sway). Falls back to a heuristic matte without it
+# rembg
+# YouTube upload
 google-api-python-client
 google-auth
 google-auth-httplib2
-edge-tts>=7.0.0
-numpy
-pillow
-matplotlib>=3.6
-arabic-reshaper
-python-bidi
-PyMuPDF
-pypdf
-python-pptx
-python-docx
+tzdata
+PyYAML
