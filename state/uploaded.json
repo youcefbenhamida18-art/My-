@@ -1,1 +1,23 @@
-
+{
+  "lessons/Chapter 2 LIPIDS 2026_2027 (1).pdf": {
+    "title": "Biochemistry - Lipids: Classification, Fatty Acids, Sterols & Complex Lipids",
+    "parts_total": 2,
+    "parts": {
+      "1": {
+        "video_id": "zmvi8RrEKvo",
+        "url": "https://youtu.be/zmvi8RrEKvo",
+        "title": "Biochemistry - Lipids: Classification, Fatty Acids, Sterols & Complex Lipids - Part 1/2",
+        "recap": "Cholesterol consists of a 4-fused-ring steroid nucleus (cyclopentanoperhydrophenanthrene) with a C3 hydroxyl group and a delta-5 double bond. It regulates membrane fluidity and serves as the precursor for steroid hormones, vitamin D3, and bile acids (H-D-B). Lipoproteins (VLDL, IDL, LDL, HDL) transport cholesterol; excess blood LDL deposits in arteries causing atherosclerosis and myocardial infarction.",
+        "uploaded_at": "2026-11-25 11:26 UTC"
+      },
+      "2": {
+        "video_id": "S--UqLW0Ghk",
+        "url": "https://youtu.be/S--UqLW0Ghk",
+        "title": "Biochemistry - Lipids: Classification, Fatty Acids, Sterols & Complex Lipids - Part 2/2",
+        "recap": "In this final summary, we mapped the entire lipid classification, from simple triglycerides to complex sphingoglycolipids. We reviewed the crucial melting point rules for fatty acids, the biosynthesis path of phospholipids (PS-PE-PC), and verified our knowledge with an exam-style active recall quiz.",
+        "uploaded_at": "2026-11-25 11:34 UTC"
+      }
+    },
+    "done": true
+  }
+}
