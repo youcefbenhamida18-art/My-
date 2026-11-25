@@ -1,5 +1,6 @@
 """Gemini (REST) client + the prompts that turn a lecture into a deep whiteboard lesson script."""
 import json
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -258,43 +259,72 @@ def normalize_steps(raw_steps, section_idx: int, section_title: str) -> list:
 
 
 # ============================================================================ client
+def collect_keys() -> list:
+    """GEMINI_API_KEY, GEMINI_API_KEY_2 ... GEMINI_API_KEY_10 (comma separated lists are accepted too)."""
+    keys = []
+    for name in ["GEMINI_API_KEY"] + [f"GEMINI_API_KEY_{i}" for i in range(2, 11)]:
+        for k in re.split(r"[,\s]+", os.environ.get(name, "") or ""):
+            if k.strip() and k.strip() not in keys:
+                keys.append(k.strip())
+    return keys
+
+
 class Gemini:
-    def __init__(self, key: str):
-        self.key = key
-        self.s = requests.Session()
-        self.s.headers.update({"x-goog-api-key": key})
+    """Several API keys x several models. A rate-limited / exhausted key is skipped and the next key is used;
+    an overloaded model is paused and the next model is used. Keys are never printed (only 'key #n')."""
+
+    def __init__(self, key: str | None = None):
+        keys = collect_keys()
+        if key and key not in keys:
+            keys.insert(0, key)
+        if not keys:
+            raise SystemExit("No Gemini API key found (secret GEMINI_API_KEY).")
+        self.keys = keys
+        self.sessions = []
+        for k in keys:
+            s = requests.Session()
+            s.headers.update({"x-goog-api-key": k})
+            self.sessions.append(s)
         self.min_gap = env("LLM_MIN_GAP", 5.0, float)
-        self._last = 0.0
-        self._files = {}
+        self._last = {}                                   # key index -> time of its last call
+        self._files = {}                                  # (key index, fingerprint) -> uploaded file
+        self.dead_keys, self.dead_models, self.dead = set(), set(), set()   # dead = (model, key index)
+        self.cool, self.model_cool, self.key_cool = {}, {}, {}              # "usable again at" timestamps
+        self.rr = 0                                       # round-robin: which key goes first
         self.models = self._pick_models()
-        self.mi = 0
-        log("Gemini models to try:", self.models)
+        log(f"Gemini: {len(self.keys)} API key(s); models to try: {self.models}")
 
     # ---- models
     def _pick_models(self) -> list:
         forced = env("GEMINI_MODEL")
         avail = None
-        try:
-            names, token = [], None
-            for _ in range(6):
-                params = {"pageSize": 200}
-                if token:
-                    params["pageToken"] = token
-                r = self.s.get(f"{BASE}/v1beta/models", params=params, timeout=30)
-                if r.status_code in (400, 401, 403):
-                    raise SystemExit(f"Gemini API key rejected ({r.status_code}): {r.text[:200]}")
-                r.raise_for_status()
-                j = r.json()
-                names += [m["name"].split("/", 1)[1] for m in j.get("models", [])
-                          if "generateContent" in m.get("supportedGenerationMethods", [])]
-                token = j.get("nextPageToken")
-                if not token:
-                    break
-            avail = set(names)
-        except SystemExit:
-            raise
-        except Exception as e:
-            log("  could not list models:", e)
+        for ki, s in enumerate(self.sessions):
+            try:
+                names, token = [], None
+                for _ in range(6):
+                    params = {"pageSize": 200}
+                    if token:
+                        params["pageToken"] = token
+                    r = s.get(f"{BASE}/v1beta/models", params=params, timeout=30)
+                    if r.status_code in (400, 401, 403):
+                        raise PermissionError(r.status_code)
+                    r.raise_for_status()
+                    j = r.json()
+                    names += [m["name"].split("/", 1)[1] for m in j.get("models", [])
+                              if "generateContent" in m.get("supportedGenerationMethods", [])]
+                    token = j.get("nextPageToken")
+                    if not token:
+                        break
+                avail = set(names)
+                break
+            except PermissionError as e:
+                log(f"  key #{ki + 1} was rejected ({e}); it will be skipped")
+                self.dead_keys.add(ki)
+            except Exception as e:
+                log(f"  could not list models with key #{ki + 1}: {type(e).__name__}")
+                break
+        if len(self.dead_keys) == len(self.keys):
+            raise SystemExit("All Gemini API keys were rejected. Check the GEMINI_API_KEY secrets.")
         cands = list(PREFERRED_MODELS)
         if avail:
             cands = [m for m in PREFERRED_MODELS if m in avail]
@@ -306,30 +336,47 @@ class Gemini:
             cands = [forced] + [m for m in cands if m != forced]
         return cands
 
-    def _next_model(self, why: str):
-        log(f"  model {self.models[self.mi]} unusable ({why})")
-        self.mi += 1
-        if self.mi >= len(self.models):
-            raise RuntimeError("No usable Gemini model. Check the API key / quota, or set GEMINI_MODEL.")
+    def _next_slot(self):
+        """Best (model, key index) usable right now -> ((m, ki), 0) ; or (None, seconds to wait)."""
+        now, soonest, alive = time.time(), None, False
+        n = len(self.keys)
+        order = [(self.rr + i) % n for i in range(n)]
+        for m in self.models:
+            if m in self.dead_models:
+                continue
+            for ki in order:
+                if ki in self.dead_keys or (m, ki) in self.dead:
+                    continue
+                alive = True
+                until = max(self.cool.get((m, ki), 0), self.model_cool.get(m, 0), self.key_cool.get(ki, 0))
+                if until <= now:
+                    return (m, ki), 0.0
+                soonest = until if soonest is None else min(soonest, until)
+        if not alive:
+            raise RuntimeError("No usable Gemini key/model left (all rejected or out of quota today). Add more keys "
+                               "or run again later; finished sections are cached, nothing is lost.")
+        return None, max(1.0, soonest - now)
 
-    # ---- files
-    def upload(self, path: Path, mime: str, fp: str) -> dict:
-        if fp in self._files:
-            return self._files[fp]
-        size = path.stat().st_size
+    # ---- files (uploaded files belong to ONE key/project, so each key uploads its own copy)
+    def upload(self, path: Path, mime: str, fp: str, ki: int) -> dict:
+        if (ki, fp) in self._files:
+            return self._files[(ki, fp)]
+        s, size = self.sessions[ki], path.stat().st_size
         for attempt in range(1, 5):
             try:
-                st = self.s.post(f"{BASE}/upload/v1beta/files", headers={
+                st = s.post(f"{BASE}/upload/v1beta/files", headers={
                     "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start",
                     "X-Goog-Upload-Header-Content-Length": str(size),
                     "X-Goog-Upload-Header-Content-Type": mime, "Content-Type": "application/json"},
                     json={"file": {"display_name": f"lesson-{fp[:8]}"}}, timeout=60)
+                if st.status_code in (400, 401, 403):
+                    raise PermissionError(st.status_code)
                 st.raise_for_status()
                 url = st.headers["x-goog-upload-url"]
                 with open(path, "rb") as fh:
-                    up = self.s.post(url, headers={"X-Goog-Upload-Offset": "0",
-                                                   "X-Goog-Upload-Command": "upload, finalize"},
-                                     data=fh, timeout=(30, 900))
+                    up = s.post(url, headers={"X-Goog-Upload-Offset": "0",
+                                              "X-Goog-Upload-Command": "upload, finalize"},
+                                data=fh, timeout=(30, 900))
                 up.raise_for_status()
                 info = up.json()["file"]
                 for _ in range(90):  # wait until ACTIVE
@@ -339,35 +386,37 @@ class Gemini:
                     if state == "FAILED":
                         raise RuntimeError("file processing failed")
                     time.sleep(3)
-                    info = self.s.get(f"{BASE}/v1beta/{info['name']}", timeout=30).json()
-                self._files[fp] = {"uri": info["uri"], "mime": info.get("mimeType", mime)}
-                return self._files[fp]
+                    info = s.get(f"{BASE}/v1beta/{info['name']}", timeout=30).json()
+                self._files[(ki, fp)] = {"uri": info["uri"], "mime": info.get("mimeType", mime)}
+                return self._files[(ki, fp)]
+            except PermissionError:
+                raise
             except Exception as e:
-                log(f"  upload attempt {attempt} failed: {e}")
+                log(f"  upload attempt {attempt} (key #{ki + 1}) failed: {type(e).__name__}")
                 time.sleep(5 * attempt)
         raise RuntimeError(f"Could not upload {path.name} to Gemini")
 
-    def file_parts(self, lesson: Lesson) -> list:
+    def file_parts(self, lesson: Lesson, ki: int) -> list:
         parts = []
         for i, f in enumerate(lesson.files, 1):
             role = "LECTURE" if f.role == "lecture" else "PAST TD / EXAM"
             head = f"=== FILE {i}: {f.name} ({role}) ==="
             if f.kind == "pdf":
-                u = self.upload(f.pdf, "application/pdf", f.fp)
+                u = self.upload(f.pdf, "application/pdf", f.fp, ki)
                 parts += [{"text": head}, {"fileData": {"mimeType": u["mime"], "fileUri": u["uri"]}}]
             elif f.kind == "image":
-                u = self.upload(f.image, IMAGE_MIME[f.image.suffix.lower()], f.fp)
+                u = self.upload(f.image, IMAGE_MIME[f.image.suffix.lower()], f.fp, ki)
                 parts += [{"text": head}, {"fileData": {"mimeType": u["mime"], "fileUri": u["uri"]}}]
             else:
                 parts.append({"text": head + "\n" + f.text[:250000]})
         return parts
 
     # ---- generation
-    def _pace(self):
-        wait = self.min_gap - (time.time() - self._last)
+    def _pace(self, ki: int):
+        wait = self.min_gap - (time.time() - self._last.get(ki, 0.0))
         if wait > 0:
             time.sleep(wait)
-        self._last = time.time()
+        self._last[ki] = time.time()
 
     @staticmethod
     def _extract(j: dict):
@@ -392,24 +441,40 @@ class Gemini:
                 return data
             except Exception:
                 cache_file.unlink(missing_ok=True)
-        parts = self.file_parts(lesson) + [{"text": prompt}]
-        body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
-                "contents": [{"role": "user", "parts": parts}],
-                "generationConfig": {"responseMimeType": "application/json"},
-                "safetySettings": SAFETY}
-        fails = 0
+        attempts, bad, busy = 0, 0, {}
         while True:
-            model = self.models[self.mi]
-            self._pace()
-            log(f"  Gemini [{model}] {label} ...")
+            slot, wait = self._next_slot()
+            if slot is None:
+                log(f"  every key/model is cooling down; waiting {wait:.0f}s")
+                time.sleep(min(wait, 180))
+                continue
+            model, ki = slot
+            attempts += 1
+            if attempts > 150:
+                raise RuntimeError("Gemini keeps failing; try again later (finished sections are cached).")
             try:
-                r = self.s.post(f"{BASE}/v1beta/models/{model}:generateContent", json=body, timeout=(30, 1200))
+                parts = self.file_parts(lesson, ki) + [{"text": prompt}]
+            except PermissionError as e:
+                log(f"  key #{ki + 1} rejected while uploading ({e}); skipping it")
+                self.dead_keys.add(ki)
+                continue
+            except Exception as e:
+                log(f"  upload with key #{ki + 1} failed ({type(e).__name__}); pausing this key for 2 minutes")
+                self.key_cool[ki] = time.time() + 120
+                continue
+            body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                    "contents": [{"role": "user", "parts": parts}],
+                    "generationConfig": {"responseMimeType": "application/json"},
+                    "safetySettings": SAFETY}
+            self._pace(ki)
+            t0 = time.time()
+            log(f"  Gemini [{model}] key #{ki + 1}/{len(self.keys)}: {label} ...")
+            try:
+                r = self.sessions[ki].post(f"{BASE}/v1beta/models/{model}:generateContent", json=body,
+                                           timeout=(30, 1200))
             except requests.RequestException as e:
-                fails += 1
-                if fails > 6:
-                    raise
-                log(f"  network error ({e}); retry in {15 * fails}s")
-                time.sleep(15 * fails)
+                log(f"  network error ({type(e).__name__}); trying again shortly")
+                self.cool[(model, ki)] = time.time() + 20
                 continue
             if r.status_code == 200:
                 text = self._extract(r.json())
@@ -418,40 +483,51 @@ class Gemini:
                         data = parse_json(text)
                         cache_file.parent.mkdir(parents=True, exist_ok=True)
                         cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                        log(f"  ok in {time.time() - t0:.0f}s ({len(text) // 1000} KB)")
+                        self.rr = (ki + 1) % len(self.keys)   # next call starts with the next key
                         return data
                     except Exception as e:
                         log(f"  JSON parse failed: {e}")
-                fails += 1
-                if fails > 4:
+                bad += 1
+                if bad > 4:
                     raise RuntimeError(f"Gemini returned unusable output for {label}")
-                time.sleep(10)
+                self.cool[(model, ki)] = time.time() + 10
                 continue
             code, msg = r.status_code, r.text[:800]
+            if code in (400, 401, 403) and re.search(
+                    r"API key not valid|API_KEY_INVALID|API key expired|denied access|suspended|has been blocked",
+                    msg, re.I):
+                log(f"  key #{ki + 1} is not accepted ({code}); skipping it")
+                self.dead_keys.add(ki)
+                continue
             if code in (401, 403):
-                if "quota" in msg.lower() or "free tier" in msg.lower() or "not available" in msg.lower():
-                    self._next_model(f"{code} {msg[:120]}")
+                if re.search(r"quota|free tier|not available|billing", msg, re.I):
+                    log(f"  {model} is not allowed for key #{ki + 1}; skipping this pair")
+                    self.dead.add((model, ki))
                     continue
                 raise RuntimeError(f"Gemini rejected the request ({code}): {msg}")
             if code == 404 or (code == 400 and re.search(r"not found|not supported|is not available", msg, re.I)):
-                self._next_model(f"{code}")
+                log(f"  {model}: not available, skipping this model")
+                self.dead_models.add(model)
                 continue
             if code == 429:
                 if "limit: 0" in msg or "PerDay" in msg or "per day" in msg.lower():
-                    self._next_model("daily/free quota exhausted for this model")
+                    log(f"  key #{ki + 1}: daily quota of {model} is used up; skipping this pair")
+                    self.dead.add((model, ki))
                     continue
                 m = re.search(r'retry(?:Delay)?\W+(?:in\s+)?"?([\d.]+)\s*s', msg, re.I)
-                wait = min(120.0, max(float(m.group(1)) + 3 if m else 0, 25.0))
-                fails += 1
-                if fails > 10:
-                    raise RuntimeError("Gemini rate limit keeps failing: " + msg[:300])
-                log(f"  rate limited; waiting {wait:.0f}s")
-                time.sleep(wait)
+                pause = min(120.0, max(float(m.group(1)) + 3 if m else 0, 25.0))
+                self.cool[(model, ki)] = time.time() + pause
+                log(f"  key #{ki + 1} is rate limited ({pause:.0f}s); switching to another key")
                 continue
             if code >= 500:
-                fails += 1
-                if fails > 6:
-                    raise RuntimeError(f"Gemini server error {code}: {msg[:300]}")
-                time.sleep(min(20 * fails, 120))
+                busy[model] = busy.get(model, 0) + 1
+                pause = min(30 * busy[model], 150)
+                self.model_cool[model] = time.time() + pause
+                log(f"  {model} is busy ({code}); pausing it for {pause}s")
+                if sum(busy.values()) > 30:
+                    raise RuntimeError("Gemini is overloaded right now. Run the workflow again later "
+                                       "(finished sections are cached, nothing is lost).")
                 continue
             raise RuntimeError(f"Gemini error {code}: {msg}")
 
