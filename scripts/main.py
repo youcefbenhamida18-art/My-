@@ -128,9 +128,9 @@ def process(lesson, state, gem, families):
 
 
 def main():
-    if not env("GEMINI_API_KEY"):
+    if not llm.collect_keys():
         die("Secret GEMINI_API_KEY is missing. Create a free key at https://aistudio.google.com/apikey and add it "
-            "in Settings > Secrets and variables > Actions.")
+            "in Settings > Secrets and variables > Actions. (More keys: GEMINI_API_KEY_2 ... GEMINI_API_KEY_10)")
     if UPLOAD:
         youtube.check_credentials()
     state = load_state()
@@ -156,7 +156,7 @@ def main():
     log(f"Mode: {'TEST (2 sections, no upload)' if TEST else 'upload' if UPLOAD else 'no upload'}; "
         f"lessons: {[l.key for l in chosen]}")
     families = board.setup_fonts()
-    gem = llm.Gemini(env("GEMINI_API_KEY"))
+    gem = llm.Gemini()
     ok = [process(l, state, gem, families) for l in chosen]
     if not all(ok):
         sys.exit(1)
