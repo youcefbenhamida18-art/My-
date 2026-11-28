@@ -123,7 +123,7 @@
   "begins_at_1": true
  },
  "episode": 1,
- "part": 3,
+ "part": 4,
  "week_outline": {
   "episode_title_ja": "乱世を憂う者たち",
   "episode_title_ar": "ذوو الهمم في زمن الاضطراب",
@@ -279,6 +279,19 @@
    "duration": 120.17,
    "credits": [],
    "date": "2026-11-25"
+  },
+  {
+   "job": "e01p3",
+   "episode": 1,
+   "part": 3,
+   "title_ar": "سينغوكو يوكو: التحول الروحي",
+   "summary": "Shinsuke inadvertently slices open the bandit leader's helmet, uncovering an elongated demon. Faced with an authentic monster, Tama and Jinka perform the spirit-fusion ritual, triggering Jinka's dramatic transformation into his blazing fox demon form.",
+   "video": "/home/runner/work/My-/My-/work/e01p3/out/short_e01p3.mp4",
+   "thumbnail": "/home/runner/work/My-/My-/work/e01p3/out/thumb_e01p3.jpg",
+   "vertical": "/home/runner/work/My-/My-/work/e01p3/out/short_e01p3_vertical.mp4",
+   "duration": 120.25,
+   "credits": [],
+   "date": "2026-11-28"
   }
  ],
  "episodes": [
@@ -304,5 +317,5 @@
    "short": "uBYvZ5Fk-kg"
   }
  ],
- "last_day": "2026-11-26"
+ "last_day": "2026-11-29"
 }
